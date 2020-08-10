@@ -4,6 +4,7 @@ import os
 import csv
 from os import path
 import re
+from datetime import timedelta, date
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -16,11 +17,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 
+
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--window-size=1420,1080')
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--disable-gpu')
+
+
 
 def daterange(date1, date2):
         for n in range(int ((date2 - date1).days)+1):
@@ -82,13 +86,13 @@ def extractRetailData(centre, start_year, end_year, month, category, commodity, 
                 print('exists')
         for year in range(start_year,end_year+1):
                 for month in months:
-                        browser = webdriver.Chrome('/home/gem/Nishant/chromedriver',chrome_options=chrome_options)
-                        url = 'http://nhb.gov.in/OnlineClient/MonthlyPriceAndArrivalReport.aspx'
                         myfile = folderPath+'/'+str(year)+'_'+str(month)+'.csv'
-                        print(myfile)
                         if(path.exists(myfile)):
                                 print(myfile,": exists")
                                 continue
+                        print('TRYING TO DOWNLOAD FILE ',myfile)
+                        browser = webdriver.Chrome(chrome_options=chrome_options)
+                        url = 'http://nhb.gov.in/OnlineClient/MonthlyPriceAndArrivalReport.aspx'
                         print(centre, year, month,commodity)
                         try:
                             filedata = []
@@ -110,6 +114,7 @@ def extractRetailData(centre, start_year, end_year, month, category, commodity, 
                             table = browser.find_element_by_xpath("//*[@id=\"ctl00_ContentPlaceHolder1_GridViewmonthlypriceandarrivalreport\"]")
                         except NoSuchElementException:
                             print('No Such Element Found')
+                            browser.close()
                             continue
                         rows = table.find_elements_by_tag_name("tr")
                         monthnum = month_name_to_number(month)
@@ -128,8 +133,8 @@ def extractRetailData(centre, start_year, end_year, month, category, commodity, 
                             filedata.append(new_str)
                         filedata.sort()
                         (pd.DataFrame(filedata)).to_csv(myfile)
-                        print('DONE')
-
+                        browser.close()
+ 
 
 centres  = ["AHMEDABAD", "AMRITSAR", "BARAUT", "Bengaluru", "BHOPAL", "BHUBANESHWAR", "CHANDIGARH",
  "CHENNAI", "DEHRADUN", "DELHI", "GANGATOK", "GUWAHATI", "HYDERABAD", "JAIPUR", "JAMMU", "KOLKATA",
@@ -147,5 +152,4 @@ end_year = 2020
 
 for centre in centres:
         extractRetailData(centre, start_year, end_year, months, category, commodity, variety)
-
 
