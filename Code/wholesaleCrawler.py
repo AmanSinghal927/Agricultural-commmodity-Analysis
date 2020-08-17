@@ -4,6 +4,8 @@ from selenium.common.exceptions import StaleElementReferenceException
 import os
 from state_map import state_map
 from os import path
+from selenium.common.exceptions import TimeoutException
+
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--no-sandbox')
@@ -30,36 +32,76 @@ def downloadWholesaleData(commodity,centres,start_year,end_year,months):
                 print(centre, commodity)
                 for year in range(start_year,end_year+1):
                         for month in months:
+                                print(year,month,centre,commodity)
                                 fileName = "mynewdata"+"_"+str(year)+"_"+str(month)+".csv"
                                 filePath = folderPath + "/" + fileName
                                 print('file to open',filePath)
+                                print(path.exists(filePath))
                                 if path.exists(filePath):
-                                    print(filePath + " Exist")
+                                    print(filePath, " Exist")
                                     continue
-                                print("TRYING TO DOWNLOAD THIS FILE",fileName, end =" ")                                
+                                print("After")
+                                #print("TRYING TO DOWNLOAD THIS FILE",fileName, end =" ")                                
+                                driver = webdriver.Chrome(chrome_options=chrome_options)
                                 for t in range(3):
                                         try:
-                                                driver = webdriver.Chrome(chrome_options=chrome_options)
-                                                driver.get('http://agmarknet.gov.in/PriceAndArrivals/DatewiseCommodityReport.aspx')
-                                                print('0', end=" ")
+                                                print("inside try, t=", t)
+                                                try_left = 3
+                                                driver.set_page_load_timeout(10)
+                                                while True:
+                                                        try:
+                                                            print("driver.get")
+                                                            driver.get("https://agmarknet.gov.in/PriceAndArrivals/DatewiseCommodityReport.aspx")
+                                                            break
+                                                        except TimeoutException:
+                                                            print("Timeout exveption")
+                                                            try_left-=1
+                                                            driver.execute_script("window.stop();")
+                                                            if try_left<=0:
+                                                                print("Timeout loading url")
+                                                                break
+
+                                                driver.set_page_load_timeout(600)
+                                                #driver.get('http://agmarknet.gov.in/PriceAndArrivals/DatewiseCommodityReport.aspx')
+                                                print('YEAR', end=" ")
                                                 driver.find_element_by_xpath("//*[@id=\"cphBody_cboYear\"]/option[contains(text(),\""+str(year)+"\")]").click()
                                                 driver.implicitly_wait(400)
-                                                print('1', end=" ")
+                                                print('MONTH', end=" ")
+                                                flag = False
                                                 for k in range(5):
                                                         try:
                                                             driver.find_element_by_xpath("//*[@id=\"cphBody_cboMonth\"]/option[contains(text(),\""+str(month)+"\")]").click()
                                                             driver.implicitly_wait(400)
+                                                            flag = True
                                                             break
                                                         except (StaleElementReferenceException) as x:
                                                             k+=1
-                                                        print('2', end=" ")
+                                                if(not flag):
+                                                        continue
+                                                print('STATE', end=" ")
+                                                flag = False
+                                                for k in range(5):
+                                                        try:
+                                                                driver.find_element_by_xpath("//*[@id=\"cphBody_cboState\"]/option[contains(text(),\""+str(centre)+"\")]").click()
+                                                                driver.implicitly_wait(400)
+                                                                flag = True
+                                                                break
+                                                        except (StaleElementReferenceException) as x:
+                                                                k+=1
+                                                if(not flag):
+                                                        continue
+                                                print('COMMODITY', end=" ")
+                                                flag = False
                                                 for k in range(5):
                                                         try:
                                                             driver.find_element_by_xpath("//*[@id=\"cphBody_cboCommodity\"]/option[contains(text(),\""+str(commodity)+"\")]").click()
                                                             driver.implicitly_wait(400)
+                                                            flag = True
                                                             break
                                                         except (StaleElementReferenceException) as x:
                                                             k+=1
+                                                if(not flag):
+                                                        continue
                                                 print('downloading data', end =' ')
                                                 driver.find_element_by_xpath("//*[@id=\"cphBody_btnSubmit\"]").click()
                                                 table = driver.find_element_by_xpath("//*[@id=\"cphBody_gridRecords\"]")
@@ -79,16 +121,15 @@ def downloadWholesaleData(commodity,centres,start_year,end_year,months):
                                                 driver.close()
                                                 break
                                         except(NoSuchElementException,StaleElementReferenceException) as e:
-                                                driver.close()
                                                 print("Exception")
                                                 continue
+                                try:
+                                        driver.close()
+                                except:
+                                        print('BROWSER ALREADY CLOSED')
 
-
-commodity = "Paddy(Dhan)(Common)"
+commodity = "Rice"
 start_year = 2016
-end_year = 2020
+end_year = 2019
 centres = state_map[commodity]
-months =['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
-downloadWholesaleData(commodity,centres,start_year,end_year,months)
 

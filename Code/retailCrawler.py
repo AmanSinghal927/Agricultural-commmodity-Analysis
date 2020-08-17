@@ -23,9 +23,6 @@ chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--window-size=1420,1080')
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--disable-gpu')
-
-
-
 def daterange(date1, date2):
         for n in range(int ((date2 - date1).days)+1):
                 yield date1 + timedelta(n)
@@ -53,7 +50,7 @@ def month_name_to_number(number):
     elif number == "March":
         return 3
     elif number == "April":
-        return 4
+        return 4 
     elif number == "May":
         return 5
     elif number == "June":
@@ -76,6 +73,30 @@ def extractRetailData(centre, start_year, end_year, month, category, commodity, 
         if not os.path.exists(rootfolder):
                 print('not exists')
                 os.makedirs(rootfolder)
+        else:
+                print('exists')
+        folderPath = rootfolder+'/'+str(centre)
+        if not os.path.exists(folderPath):
+                print('not exists')
+                os.makedirs(folderPath)
+        else:
+                print('exists')
+        for year in range(start_year,end_year+1):
+                for month in months:
+                        myfile = folderPath+'/'+str(year)+'_'+str(month)+'.csv'
+                        if(path.exists(myfile)):
+                                print(myfile,": exists")
+                                continue
+                        print('TRYING TO DOWNLOAD FILE ',myfile)
+                        browser = webdriver.Chrome(chrome_options=chrome_options)
+                        url = 'http://nhb.gov.in/OnlineClient/MonthlyPriceAndArrivalReport.aspx'
+                        print(centre, year, month,commodity)
+                        try:
+                            filedata = []
+                            browser.get(url)
+                            browser.implicitly_wait(600)
+                            browser.find_element_by_xpath("//*[@id=\"ctl00_ContentPlaceHolder1_ddlyear\"]/option[contains(text(),\""+str(year)+"\")]").click()
+                            browser.find_element_by_xpath("//*[@id=\"ctl00_ContentPlaceHolder1_ddlmonth\"]/option[contains(text(),\""+month+"\")]").click()
         else:
                 print('exists')
         folderPath = rootfolder+'/'+str(centre)
@@ -134,7 +155,6 @@ def extractRetailData(centre, start_year, end_year, month, category, commodity, 
                         filedata.sort()
                         (pd.DataFrame(filedata)).to_csv(myfile)
                         browser.close()
- 
 
 centres  = ["AHMEDABAD", "AMRITSAR", "BARAUT", "Bengaluru", "BHOPAL", "BHUBANESHWAR", "CHANDIGARH",
  "CHENNAI", "DEHRADUN", "DELHI", "GANGATOK", "GUWAHATI", "HYDERABAD", "JAIPUR", "JAMMU", "KOLKATA",
@@ -152,4 +172,5 @@ end_year = 2020
 
 for centre in centres:
         extractRetailData(centre, start_year, end_year, months, category, commodity, variety)
+
 
